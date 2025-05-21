@@ -1,3 +1,5 @@
+//Convert standard carpark JSON that uses x-y coordinates to lat-lng
+
 import fs from 'fs';
 import proj4 from 'proj4';
 import path from 'path';
