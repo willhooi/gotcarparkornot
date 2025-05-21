@@ -52,7 +52,8 @@ function CheckCarpark() {
 
   return (
     <Container className="py-4">
-      <h1 className="mb-4">🚗 GOT CARPARK OR NOT?</h1>
+        <span className="display-1">🚗</span> <br />
+      <h1 className="mb-4">GOT CARPARK OR NOT?</h1>
 
       <SearchForm
         location={location}
