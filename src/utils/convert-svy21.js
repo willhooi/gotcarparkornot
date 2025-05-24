@@ -1,4 +1,5 @@
 //Convert standard carpark JSON that uses x-y coordinates to lat-lng
+//To use: node convert-svy21.js
 
 import fs from 'fs';
 import proj4 from 'proj4';
