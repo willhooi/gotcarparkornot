@@ -35,3 +35,29 @@
   font-size: 1rem;
   padding: 6px 12px;
 }
+
+.suggestion-list-ul {
+  max-height: 250px;  
+  overflow-y: auto;
+  padding-left: 0;
+  margin-top: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  background-color: #fff;
+}
+
+.suggestion-item:hover {
+  background-color: #f1f1f1;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}

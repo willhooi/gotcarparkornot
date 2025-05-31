@@ -20,13 +20,16 @@ function CheckCarpark() {
   const [routeCoords, setRouteCoords] = useState([]);
   const [showRoute, setShowRoute] = useState(false);
   const [results, setResults] = useState([]);
+  const [slotAvailabilityMap, setSlotAvailabilityMap] = useState({});
 
-  const handleSearch = (e) => {
+  // Search handler with availability fetch
+  const handleSearch = async (e) => {
     const input = e.target.value;
     setLocation(input);
 
     if (input.trim() === '') {
       setResults([]);
+      setSlotAvailabilityMap({});
       return;
     }
 
@@ -34,8 +37,29 @@ function CheckCarpark() {
       cp.address.toLowerCase().includes(input.toLowerCase())
     );
     setResults(filtered);
+
+    try {
+      const response = await axios.get(baseURL);
+      const carparkData = response.data.items[0].carpark_data;
+
+      const availabilityMap = {};
+      filtered.forEach(cp => {
+        const found = carparkData.find(c => c.carpark_number === cp.car_park_no);
+        if (found && found.carpark_info.length > 0) {
+          availabilityMap[cp.car_park_no] = found.carpark_info[0].lots_available;
+        } else {
+          availabilityMap[cp.car_park_no] = 'N/A';
+        }
+      });
+
+      setSlotAvailabilityMap(availabilityMap);
+    } catch (err) {
+      console.error('Error fetching availability:', err);
+      setSlotAvailabilityMap({});
+    }
   };
 
+  // When user clicks a suggestion
   const handleSelectSuggestion = (cp) => {
     setLocation(cp.address);
     setResults([]);
@@ -100,7 +124,7 @@ function CheckCarpark() {
   };
 
   const handleRouteClick = async () => {
-    if (!userAddress || !selectedCarpark?.lat || !selectedCarpark?.lng) {
+    if (!userAddress || !selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
       setErrorMsg('Please enter a valid address and check carpark availability first.');
       return;
     }
@@ -122,63 +146,69 @@ function CheckCarpark() {
       setLoading(false);
     }
   };
-///////////////////////////////////////////////////////////////////////////
 
- return (
-  <div className="check-carpark-wrapper">
-    <div className="check-carpark-container">
-      <span className="display-1">🚗</span> <br />
-      <h1 className="mb-4">GOT CARPARK OR NOT?</h1>
-
-      <SearchForm
-        location={location}
-        setLocation={setLocation}
-        onCheck={checkAvailability}
-        loading={loading}
-        onSearchChange={handleSearch}
-        userAddress={userAddress}
-        setUserAddress={setUserAddress}
-        onRoute={handleRouteClick}
-      />
-
-      {results.length > 0 && (
-        <div className="border rounded p-2 mb-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-          <strong>Possible addresses:</strong>
-          <ul className="list-unstyled mb-0">
-            {results.map(cp => (
-              <li
-                key={cp.car_park_no}
-                onClick={() => handleSelectSuggestion(cp)}
-                style={{ cursor: 'pointer', padding: '4px 0', borderBottom: '1px solid #eee' }}
-              >
-                {cp.address}
-              </li>
-            ))}
-          </ul>
+  return (
+    <div className="check-carpark-wrapper">
+      <Container className="check-carpark-container">
+        <div className="text-center">
+          <span className="display-1">🚗</span>
+          <h1 className="mb-4">GOT CARPARK OR NOT?</h1>
         </div>
-      )}
 
-      <UserRoute
-        userAddress={userAddress}
-        setUserAddress={setUserAddress}
-        handleRouteClick={handleRouteClick}
-        selectedCarpark={selectedCarpark}
-        loading={loading}
-      />
-
-      {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
-
-      {availability !== null && selectedCarpark && (
-        <CarparkResultCard
-          availability={availability}
-          carpark={selectedCarpark}
-          origin={showRoute ? originCoords : null}
-          routeCoords={showRoute ? routeCoords : []}
+        <SearchForm
+          location={location}
+          setLocation={setLocation}
+          onCheck={checkAvailability}
+          loading={loading}
+          onSearchChange={handleSearch}
+          userAddress={userAddress}
+          setUserAddress={setUserAddress}
+          onRoute={handleRouteClick}
         />
-      )}
-    </div>
+
+        
+        {/* Suggested Address List */}
+{results.length > 0 && (
+  <div className="suggestion-list mb-3">
+    <strong>possible address：</strong>
+    <ul className="list-unstyled mb-0 suggestion-list-ul">
+      {results.map(cp => (
+        <li
+          key={cp.car_park_no}
+          onClick={() => handleSelectSuggestion(cp)}
+          className="suggestion-item"
+        >
+          <span>{cp.address}</span>
+          <span className="text-success fw-bold">
+            {slotAvailabilityMap[cp.car_park_no] ?? '--'}
+          </span>
+        </li>
+      ))}
+    </ul>
   </div>
-);
+)}
+
+        <UserRoute
+          userAddress={userAddress}
+          setUserAddress={setUserAddress}
+          handleRouteClick={handleRouteClick}
+          selectedCarpark={selectedCarpark}
+          loading={loading}
+        />
+
+        {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
+
+        {availability !== null && selectedCarpark && (
+          <CarparkResultCard
+            availability={availability}
+            carpark={selectedCarpark}
+            origin={showRoute ? originCoords : null}
+            routeCoords={showRoute ? routeCoords : []}
+          />
+        )}
+      </Container>
+    </div>
+  );
 }
 
 export default CheckCarpark;
