@@ -1,8 +1,8 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup,Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import L, { Icon } from 'leaflet';
 
-// Fix marker icons
+// Fix marker iconsa
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -10,19 +10,81 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
 });
 
-function CarparkMap({ lat, lng, address, availability }) {
+// Optional: user and carpark custom icons
+const userIcon = new Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+
+const carparkIcon = new Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+
+// Component to auto-zoom map to bounds
+function FitBounds({ origin, destination }) {
+  const map = useMap();
+  if (origin && destination) {
+    const bounds = [origin, destination];
+    map.fitBounds(bounds, { padding: [50, 50] });
+  }
+  return null;
+}
+
+///////////////////////////////////////
+
+
+function CarparkMap({ 
+  lat, 
+  lng, 
+  address, 
+  availability,
+  origin = null,
+  routeCoords = []
+
+
+
+}) {
+const destination = [lat, lng];
+
   return (
-    <MapContainer center={[lat, lng]} zoom={18} style={{ height: '400px', width: '100%' }} className="rounded">
+    <MapContainer 
+    center={[lat, lng]} 
+    zoom={18} 
+    style={{ height: '400px', width: '100%' }} 
+    className="rounded"
+    >
       <TileLayer
         attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Marker position={[lat, lng]}>
+
+      {/* Carpark marker */}
+      <Marker position={destination} icon={carparkIcon}>
         <Popup>
           {address}<br />
           Lots available: {availability}
         </Popup>
       </Marker>
+      
+      {/* User origin marker (optional) */}
+      {origin && (
+        <Marker position={origin} icon={userIcon}>
+          <Popup>Your Location</Popup>
+        </Marker>
+      )}
+
+      {/* Route line (optional) */}
+      {routeCoords.length > 0 && (
+        <Polyline positions={routeCoords} color="blue" />
+      )}
+
+      {/* Fit map to bounds if route is shown */}
+      {origin && <FitBounds origin={origin} destination={destination} />}
+
+
     </MapContainer>
   );
 }

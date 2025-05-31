@@ -1,7 +1,7 @@
 import { Card } from 'react-bootstrap';
 import CarparkMap from './CarparkMap';
 
-function CarparkResultCard({ availability, carpark }) {
+function CarparkResultCard({ availability, carpark,origin, routeCoords }) {
   const cardVariant = availability > 0 ? 'bg-success' : 'bg-danger';
 
   return (
@@ -14,7 +14,14 @@ function CarparkResultCard({ availability, carpark }) {
           <strong>Type:</strong> {carpark.car_park_type}
         </Card.Text>
 
-        <CarparkMap lat={carpark.lat} lng={carpark.lng} address={carpark.address} availability={availability} />
+        <CarparkMap lat={carpark.lat} 
+        lng={carpark.lng} 
+        address={carpark.address}
+        availability={availability} 
+        origin={origin}
+        routeCoords={routeCoords}
+
+        />
       </Card.Body>
     </Card>
   );
