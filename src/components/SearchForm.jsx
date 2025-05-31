@@ -1,8 +1,14 @@
 import { Form, Button, Row, Col, Spinner } from 'react-bootstrap';
 
-function SearchForm({ location, setLocation, onCheck, loading }) {
+function SearchForm({ location, setLocation, onCheck, loading, onSearchChange }) {
+
   return (
-    <Form className="mb-3">
+    <Form className="mb-3"
+    onSubmit={(e) => {
+        e.preventDefault();
+        onCheck();
+      }}
+    >
       <Form.Group as={Row} controlId="carparkSearch">
         <Form.Label column sm={2}>Enter Address:</Form.Label>
         <Col sm={8}>
@@ -10,7 +16,9 @@ function SearchForm({ location, setLocation, onCheck, loading }) {
             type="text"
             value={location}
             placeholder="e.g. 2A Dover Road"
-            onChange={(e) => setLocation(e.target.value)}
+            
+            // onChange={(e) => setLocation(e.target.value)}
+            onChange={onSearchChange}
           />
         </Col>
         <Col sm={2}>

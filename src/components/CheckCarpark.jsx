@@ -13,8 +13,36 @@ function CheckCarpark() {
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedCarpark, setSelectedCarpark] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  ////////////////////////////////////////////
+  // Add search function
+   const [results, setResults] = useState([]);
+ // filter mapping address realtime
+const handleSearch = (e) => {
+  const input = e.target.value;
+  setLocation(input); // support checkAvailability
 
-  const checkAvailability = async () => {
+  if (input.trim() === '') {
+    setResults([]);
+    return;
+  }
+
+  const filtered = mapping.filter(cp =>
+    cp.address.toLowerCase().includes(input.toLowerCase())
+  );
+  setResults(filtered);
+};
+
+// when user clicks on one result
+const handleSelectSuggestion = (cp) => {
+  setLocation(cp.address);
+  setResults([]);
+  checkAvailability(cp.address); // 自动查询可用车位
+};
+///////////////////////////////////////////
+  const checkAvailability = async (manualAddress) => {
+    const searchLocation = manualAddress || location;
+    
     const findCarpark = mapping.find(cp =>
       cp.address.toLowerCase().includes(location.toLowerCase())
     );
@@ -50,6 +78,8 @@ function CheckCarpark() {
     }
   };
 
+
+
   return (
     <Container className="py-4">
         <span className="display-1">🚗</span> <br />
@@ -60,7 +90,26 @@ function CheckCarpark() {
         setLocation={setLocation}
         onCheck={checkAvailability}
         loading={loading}
+        onSearchChange={handleSearch}
       />
+      
+      {/* ✅ show suggest list */}
+      {results.length > 0 && (
+        <div className="border rounded p-2 mb-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+          <strong>possible address：</strong>
+          <ul className="list-unstyled mb-0">
+            {results.map(cp => (
+              <li
+                key={cp.car_park_no}
+                onClick={() => handleSelectSuggestion(cp)}
+                style={{ cursor: 'pointer', padding: '4px 0', borderBottom: '1px solid #eee' }}
+              >
+                {cp.address}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
 
