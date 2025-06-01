@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import CarparkMap from "./CarparkMap";
 import styles from "./CarparkNumber.module.css";
+import infoDetail from "../data/carparkDetailsWithLatLng.json";
 
 const baseUrl = "https://api.data.gov.sg/v1/transport/carpark-availability";
 
@@ -9,6 +11,7 @@ function CarparkNumber() {
   const [error, setError] = useState(null);
   const [cpnum, setCpNum] = useState(null);
   const [searchItem, setSearchItem] = useState(null);
+  const [searchItemDetail, setSearchItemDetail] = useState(null);
   const [isDisplay, setIsDisplay] = useState(false);
   const [isCheck, setIsCheck] = useState(false);
 
@@ -61,9 +64,19 @@ function CarparkNumber() {
         (carpark) => carpark.carpark_number === cpnum
       );
 
-      setSearchItem(obj);
-      console.log("obj: " + obj.carpark_info[0].total_lots);
-      setIsDisplay(true);
+      const objDetail = infoDetail.find(
+        (carparknum) => carparknum.car_park_no === cpnum
+      );
+
+      if (obj === undefined || objDetail === undefined) {
+        setError("No parking lots data available for this carpark.");
+      } else {
+        setSearchItem(obj);
+        setSearchItemDetail(objDetail);
+        console.log("obj: " + obj.carpark_info[0].total_lots);
+        console.log("objDetail: " + objDetail.lat + ", " + objDetail.lng);
+        setIsDisplay(true);
+      }
     }
   }
 
@@ -82,9 +95,9 @@ function CarparkNumber() {
         <div className={styles.selectlist}>
           <select onChange={handlerSelect}>
             <option value="">-- Select carpark number --</option>
-            {carparkinfo.map((cpno, index) => (
-              <option key={index} value={cpno.carpark_number}>
-                {cpno.carpark_number}
+            {infoDetail.map((cpno, index) => (
+              <option key={index} value={cpno.car_park_no}>
+                {cpno.car_park_no}
               </option>
             ))}
           </select>
@@ -105,7 +118,7 @@ function CarparkNumber() {
           </div>
         </div>
       )}
-      {isDisplay && isCheck && searchItem && (
+      {isDisplay && isCheck && searchItem && searchItemDetail && (
         <div>
           <table className={styles.table}>
             <tbody>
@@ -122,16 +135,24 @@ function CarparkNumber() {
                 <td>{retrieveDateTime().time}</td>
               </tr>
               <tr>
-                <td>Lot Type</td>
-                <td>{searchItem.carpark_info[0].lot_type}</td>
-              </tr>
-              <tr>
                 <td>Total Lots</td>
                 <td>{searchItem.carpark_info[0].total_lots}</td>
               </tr>
               <tr>
                 <td>Available Lots</td>
                 <td>{searchItem.carpark_info[0].lots_available}</td>
+              </tr>
+              <tr>
+                <td>Address</td>
+                <td>{searchItemDetail.address}</td>
+              </tr>
+              <tr>
+                <td>Type</td>
+                <td>{searchItemDetail.car_park_type}</td>
+              </tr>
+              <tr>
+                <td>Short Term</td>
+                <td>{searchItemDetail.short_term_parking}</td>
               </tr>
             </tbody>
           </table>
