@@ -174,7 +174,7 @@ function CheckCarpark() {
 
     const distance = haversineDistance(origin, destination);
     if (distance > 40 || distance < 40 ) {
-      setErrorMsg('Your location is out of Singapore.Please check your address again.');
+      setErrorMsg('Your Address is out of Singapore.Please check your address again.');
       setShowRoute(false);
       return;
     }
