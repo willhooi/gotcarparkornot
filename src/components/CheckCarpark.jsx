@@ -191,7 +191,7 @@ function CheckCarpark() {
   // } finally {
   //   setLoading(false);
   // }
-};
+// };
 
   return (
     <div className="check-carpark-wrapper">
