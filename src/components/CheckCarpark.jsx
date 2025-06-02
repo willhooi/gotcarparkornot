@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import mapping from '../data/carparkDetailsWithLatLng.json';
 import { Container, Alert } from 'react-bootstrap';
@@ -22,8 +22,7 @@ function CheckCarpark() {
   const [results, setResults] = useState([]);
   const [slotAvailabilityMap, setSlotAvailabilityMap] = useState({});
 
-  // Search handler with availability fetch
-  const handleSearch = async (e) => {
+  const handleSearch = useCallback(async (e) => {
     const input = e.target.value;
     setLocation(input);
 
@@ -45,11 +44,7 @@ function CheckCarpark() {
       const availabilityMap = {};
       filtered.forEach(cp => {
         const found = carparkData.find(c => c.carpark_number === cp.car_park_no);
-        if (found && found.carpark_info.length > 0) {
-          availabilityMap[cp.car_park_no] = found.carpark_info[0].lots_available;
-        } else {
-          availabilityMap[cp.car_park_no] = 'N/A';
-        }
+        availabilityMap[cp.car_park_no] = (found?.carpark_info[0]?.lots_available ?? 'N/A');
       });
 
       setSlotAvailabilityMap(availabilityMap);
@@ -57,16 +52,15 @@ function CheckCarpark() {
       console.error('Error fetching availability:', err);
       setSlotAvailabilityMap({});
     }
-  };
+  }, []);
 
-  // When user clicks a suggestion
   const handleSelectSuggestion = (cp) => {
     setLocation(cp.address);
     setResults([]);
     checkAvailability(cp.address);
   };
 
-  const checkAvailability = async (manualAddress) => {
+  const checkAvailability = useCallback(async (manualAddress) => {
     const searchLocation = manualAddress || location;
     const findCarpark = mapping.find(cp =>
       cp.address.toLowerCase().includes(searchLocation.toLowerCase())
@@ -101,7 +95,7 @@ function CheckCarpark() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [location]);
 
   const geocodeAddress = async (address) => {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
@@ -123,99 +117,52 @@ function CheckCarpark() {
     return [];
   };
 
-  // const handleRouteClick = async () => {
-  //   if (!userAddress || !selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
-  //     setErrorMsg('Please enter a valid address or check carpark availability first.');
-  //     return;
-  //   }
-
-  //   try {
-  //     setLoading(true);
-  //     let origin;
-
-  //      if (!userAddress.trim()) {
-  //     // Get user's current location
-  //     origin = await new Promise((resolve, reject) => {
-  //       navigator.geolocation.getCurrentPosition(
-  //         (position) => {
-  //           resolve([position.coords.latitude, position.coords.longitude]);
-  //         },
-  //         (error) => {
-  //           reject(new Error('Failed to get current location.'));
-  //         }
-  //       );
-  //     });
-      
-
-  //   } else {
-  //       // Geocode the entered address
-  //     origin = await geocodeAddress(userAddress);
-  //     }
-
-  //     //const origin = await geocodeAddress(userAddress);
-  //     //const destination = [selectedCarpark.lat, selectedCarpark.lng];
-  //     const destination = [selectedCarpark.lat, selectedCarpark.lng];
-  //     const route = await fetchRoute(origin, destination);
-      
-  //     //const route = await fetchRoute(origin, destination);
-  //     setOriginCoords(origin);
-  //     setRouteCoords(route);
-  //     setShowRoute(true);
-  //     setErrorMsg('');
-  //   } catch (err) {
-  //     console.error(err);
-  //     setErrorMsg('Failed to calculate route. Please check your address.');
-  //     setShowRoute(false);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  const handleRouteClick = async () => {
-  if (!selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
-    setErrorMsg('Please check carpark availability first.');
-    return;
-  }
-
-  try {
-    setLoading(true);
-    let origin;
-
-    if (!userAddress.trim()) {
-      // Get user's current location
-      origin = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve([position.coords.latitude, position.coords.longitude]);
-          },
-          (error) => {
-            console.error('Geolocation error:', error);
-            reject(new Error('Failed to get current location. Please allow location access.'));
-          }
-        );
-      });
-    } else {
-      // Geocode the entered address
-      origin = await geocodeAddress(userAddress);
+  const handleRouteClick = useCallback(async () => {
+    if (!selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
+      setErrorMsg('Please check carpark availability first.');
+      return;
     }
 
-    const destination = [selectedCarpark.lat, selectedCarpark.lng];
-    const route = await fetchRoute(origin, destination);
+    try {
+      setLoading(true);
+      let origin;
 
-    setOriginCoords(origin);
-    setRouteCoords(route);
-    setShowRoute(true);
-    setErrorMsg('');
-  } catch (err) {
-    console.error(err);
-    setErrorMsg(err.message || 'Failed to calculate route. Please check your address or location access.');
-    setShowRoute(false);
-  } finally {
-    setLoading(false);
-  }
-};
+      if (!userAddress.trim()) {
+        origin = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => resolve([position.coords.latitude, position.coords.longitude]),
+            (error) => {
+              console.error('Geolocation error:', error);
+              reject(new Error('Failed to get current location. Please allow location access.'));
+            }
+          );
+        });
+      } else {
+        origin = await geocodeAddress(userAddress);
+      }
 
+      const destination = [selectedCarpark.lat, selectedCarpark.lng];
+      const route = await fetchRoute(origin, destination);
 
+      setOriginCoords(origin);
+      setRouteCoords(route);
+      setShowRoute(true);
+      setErrorMsg('');
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.message || 'Failed to calculate route. Please check your address or location access.');
+      setShowRoute(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCarpark, userAddress]);
+
+  // 🔁 Auto-update route when userAddress changes
+  useEffect(() => {
+    if (userAddress.trim() && selectedCarpark) {
+      handleRouteClick();
+    }
+  }, [userAddress, selectedCarpark, handleRouteClick]);
 
   return (
     <div className="check-carpark-wrapper">
@@ -236,27 +183,25 @@ function CheckCarpark() {
           onRoute={handleRouteClick}
         />
 
-        
-        {/* Suggested Address List */}
-{results.length > 0 && (
-  <div className="suggestion-list mb-3">
-    <strong>possible address：</strong>
-    <ul className="list-unstyled mb-0 suggestion-list-ul">
-      {results.map(cp => (
-        <li
-          key={cp.car_park_no}
-          onClick={() => handleSelectSuggestion(cp)}
-          className="suggestion-item"
-        >
-          <span>{cp.address}</span>
-          <span className="text-success fw-bold">
-            {slotAvailabilityMap[cp.car_park_no] ?? '--'}
-          </span>
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
+        {results.length > 0 && (
+          <div className="suggestion-list mb-3">
+            <strong>possible address：</strong>
+            <ul className="list-unstyled mb-0 suggestion-list-ul">
+              {results.map(cp => (
+                <li
+                  key={cp.car_park_no}
+                  onClick={() => handleSelectSuggestion(cp)}
+                  className="suggestion-item"
+                >
+                  <span>{cp.address}</span>
+                  <span className="text-success fw-bold">
+                    {slotAvailabilityMap[cp.car_park_no] ?? '--'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <UserRoute
           userAddress={userAddress}

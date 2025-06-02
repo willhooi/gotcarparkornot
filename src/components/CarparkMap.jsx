@@ -1,13 +1,14 @@
-import { MapContainer, TileLayer, Marker, Popup,Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { useEffect } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L, { Icon } from 'leaflet';
 
-// Fix marker iconsa
+// Fix marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
 // Optional: user and carpark custom icons
@@ -23,38 +24,39 @@ const carparkIcon = new Icon({
   iconAnchor: [16, 32],
 });
 
-// Component to auto-zoom map to bounds
+// Component to auto-zoom map to bounds when origin/destination changes
 function FitBounds({ origin, destination }) {
   const map = useMap();
-  if (origin && destination) {
-    const bounds = [origin, destination];
-    map.fitBounds(bounds, { padding: [50, 50] });
-  }
+
+  useEffect(() => {
+    if (origin && destination) {
+      const bounds = [origin, destination];
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [origin, destination, map]);
+
   return null;
 }
 
 ///////////////////////////////////////
 
-
-function CarparkMap({ 
-  lat, 
-  lng, 
-  address, 
+function CarparkMap({
+  lat,
+  lng,
+  address,
   availability,
   origin = null,
-  routeCoords = []
-
-
-
+  routeCoords = [],
 }) {
-const destination = [lat, lng];
+  const destination = [lat, lng];
 
   return (
-    <MapContainer 
-    center={[lat, lng]} 
-    zoom={18} 
-    style={{ height: '400px', width: '100%' }} 
-    className="rounded"
+    <MapContainer
+      center={destination}
+      zoom={18}
+      style={{ height: '400px', width: '100%' }}
+      className="rounded"
+      scrollWheelZoom={false}
     >
       <TileLayer
         attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
@@ -64,27 +66,24 @@ const destination = [lat, lng];
       {/* Carpark marker */}
       <Marker position={destination} icon={carparkIcon}>
         <Popup>
-          {address}<br />
+          {address}
+          <br />
           Lots available: {availability}
         </Popup>
       </Marker>
-      
-      {/* User origin marker (optional) */}
+
+      {/* User origin marker */}
       {origin && (
         <Marker position={origin} icon={userIcon}>
           <Popup>Your Location</Popup>
         </Marker>
       )}
 
-      {/* Route line (optional) */}
-      {routeCoords.length > 0 && (
-        <Polyline positions={routeCoords} color="blue" />
-      )}
+      {/* Route polyline */}
+      {routeCoords.length > 0 && <Polyline positions={routeCoords} color="blue" />}
 
-      {/* Fit map to bounds if route is shown */}
+      {/* Auto fit to bounds */}
       {origin && <FitBounds origin={origin} destination={destination} />}
-
-
     </MapContainer>
   );
 }
