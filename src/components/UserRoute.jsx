@@ -20,7 +20,7 @@ function UserRoute({
           <Form.Control
             type="text"
             value={userAddress}
-            placeholder="e.g. 10 Anson Road"
+            placeholder="Leave blank to use your current location."
             onChange={(e) => setUserAddress(e.target.value)}
           />
         </Col>

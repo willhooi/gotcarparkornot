@@ -123,75 +123,99 @@ function CheckCarpark() {
     return [];
   };
 
-  const handleRouteClick = async () => {
-    if (!userAddress || !selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
-      setErrorMsg('Please enter a valid address or check carpark availability first.');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const origin = await geocodeAddress(userAddress);
-      const destination = [selectedCarpark.lat, selectedCarpark.lng];
-      const route = await fetchRoute(origin, destination);
-      setOriginCoords(origin);
-      setRouteCoords(route);
-      setShowRoute(true);
-      setErrorMsg('');
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Failed to calculate route. Please check your address.');
-      setShowRoute(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // const handleRouteClick = async () => {
-  // if (!userAddress || !selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
-  //   setErrorMsg('Please enter a valid address or check carpark availability first.');
-  //   return;
-  // }
-
-  // try {
-  //   setLoading(true);
-  //   const origin = await geocodeAddress(userAddress);
-  //   const destination = [selectedCarpark.lat, selectedCarpark.lng];
-
-  //   // Haversine formula to calculate distance in km
-  //   const toRadians = deg => deg * (Math.PI / 180);
-  //   const haversineDistance = ([lat1, lon1], [lat2, lon2]) => {
-  //     const R = 6371; // Earth radius in km
-  //     const dLat = toRadians(lat2 - lat1);
-  //     const dLon = toRadians(lon2 - lon1);
-  //     const a =
-  //       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-  //       Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
-  //       Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  //     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  //     return R * c;
-  //   };
-
-  //   const distance = haversineDistance(origin, destination);
-  //   if (distance > 100  ) {
-  //     setErrorMsg('Your Address is out of Singapore.Please check your address again.');
-  //     setShowRoute(false);
+  //   if (!userAddress || !selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
+  //     setErrorMsg('Please enter a valid address or check carpark availability first.');
   //     return;
   //   }
 
-  //   const route = await fetchRoute(origin, destination);
-  //   setOriginCoords(origin);
-  //   setRouteCoords(route);
-  //   setShowRoute(true);
-  //   setErrorMsg('');
-  // } catch (err) {
-  //   console.error(err);
-  //   setErrorMsg('Failed to calculate route. Please check your address.');
-  //   setShowRoute(false);
-  // } finally {
-  //   setLoading(false);
-  // }
-// };
+  //   try {
+  //     setLoading(true);
+  //     let origin;
+
+  //      if (!userAddress.trim()) {
+  //     // Get user's current location
+  //     origin = await new Promise((resolve, reject) => {
+  //       navigator.geolocation.getCurrentPosition(
+  //         (position) => {
+  //           resolve([position.coords.latitude, position.coords.longitude]);
+  //         },
+  //         (error) => {
+  //           reject(new Error('Failed to get current location.'));
+  //         }
+  //       );
+  //     });
+      
+
+  //   } else {
+  //       // Geocode the entered address
+  //     origin = await geocodeAddress(userAddress);
+  //     }
+
+  //     //const origin = await geocodeAddress(userAddress);
+  //     //const destination = [selectedCarpark.lat, selectedCarpark.lng];
+  //     const destination = [selectedCarpark.lat, selectedCarpark.lng];
+  //     const route = await fetchRoute(origin, destination);
+      
+  //     //const route = await fetchRoute(origin, destination);
+  //     setOriginCoords(origin);
+  //     setRouteCoords(route);
+  //     setShowRoute(true);
+  //     setErrorMsg('');
+  //   } catch (err) {
+  //     console.error(err);
+  //     setErrorMsg('Failed to calculate route. Please check your address.');
+  //     setShowRoute(false);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const handleRouteClick = async () => {
+  if (!selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
+    setErrorMsg('Please check carpark availability first.');
+    return;
+  }
+
+  try {
+    setLoading(true);
+    let origin;
+
+    if (!userAddress.trim()) {
+      // Get user's current location
+      origin = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve([position.coords.latitude, position.coords.longitude]);
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            reject(new Error('Failed to get current location. Please allow location access.'));
+          }
+        );
+      });
+    } else {
+      // Geocode the entered address
+      origin = await geocodeAddress(userAddress);
+    }
+
+    const destination = [selectedCarpark.lat, selectedCarpark.lng];
+    const route = await fetchRoute(origin, destination);
+
+    setOriginCoords(origin);
+    setRouteCoords(route);
+    setShowRoute(true);
+    setErrorMsg('');
+  } catch (err) {
+    console.error(err);
+    setErrorMsg(err.message || 'Failed to calculate route. Please check your address or location access.');
+    setShowRoute(false);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div className="check-carpark-wrapper">
