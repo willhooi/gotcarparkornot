@@ -40,3 +40,9 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Prevent leaflet map from floating over other content */
+.leaflet-container {
+  z-index: 0 !important;
+}
+

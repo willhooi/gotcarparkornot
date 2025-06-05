@@ -1,15 +1,26 @@
-
-//import './App.css'
-//import 'bootstrap/dist/css/bootstrap.min.css';
-import CheckCarpark from './components/CheckCarpark'
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { Container } from 'react-bootstrap';
+import CheckCarpark from './components/CheckCarpark';
+import SearchbyCarparkNumber from './components/SearchbyCarparkNumber';
 
 function App() {
-  
   return (
-    <>
-    <CheckCarpark />
-    </>
-  )
+    <div style={{ background: '#f8f9fa', minHeight: '100vh' }}>
+      <Container className="py-5">
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <CheckCarpark />
+        </div>
+
+        <hr className="my-5" />
+
+        <div style={{ position: 'relative', zIndex: 0 }}>
+          <SearchbyCarparkNumber />
+        </div>
+        
+      </Container>
+    </div>
+  );
 }
 
-export default App
+export default App;

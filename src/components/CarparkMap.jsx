@@ -11,7 +11,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Optional: user and carpark custom icons
+// Custom icons
 const userIcon = new Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
   iconSize: [32, 32],
@@ -24,67 +24,58 @@ const carparkIcon = new Icon({
   iconAnchor: [16, 32],
 });
 
-// Component to auto-zoom map to bounds when origin/destination changes
+// Auto-fit bounds when both origin and destination exist
 function FitBounds({ origin, destination }) {
   const map = useMap();
 
   useEffect(() => {
     if (origin && destination) {
-      const bounds = [origin, destination];
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds([origin, destination], { padding: [50, 50] });
     }
   }, [origin, destination, map]);
 
   return null;
 }
 
-///////////////////////////////////////
-
-function CarparkMap({
-  lat,
-  lng,
-  address,
-  availability,
-  origin = null,
-  routeCoords = [],
-}) {
+// Main CarparkMap component
+function CarparkMap({ lat, lng, address, availability, origin = null, routeCoords = [] }) {
   const destination = [lat, lng];
 
   return (
-    <MapContainer
-      center={destination}
-      zoom={18}
-      style={{ height: '400px', width: '100%' }}
-      className="rounded"
-      scrollWheelZoom={false}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <div style={{ position: 'relative', zIndex: 0, marginBottom: '2rem' }}>
+      <MapContainer
+        center={destination}
+        zoom={18}
+        scrollWheelZoom={false}
+        className="rounded"
+        style={{ height: '400px', width: '100%' }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-      {/* Carpark marker */}
-      <Marker position={destination} icon={carparkIcon}>
-        <Popup>
-          {address}
-          <br />
-          Lots available: {availability}
-        </Popup>
-      </Marker>
-
-      {/* User origin marker */}
-      {origin && (
-        <Marker position={origin} icon={userIcon}>
-          <Popup>Your Location</Popup>
+        <Marker position={destination} icon={carparkIcon}>
+          <Popup>
+            {address}
+            <br />
+            Lots available: {availability}
+          </Popup>
         </Marker>
-      )}
 
-      {/* Route polyline */}
-      {routeCoords.length > 0 && <Polyline positions={routeCoords} color="blue" />}
+        {origin && (
+          <Marker position={origin} icon={userIcon}>
+            <Popup>Your Location</Popup>
+          </Marker>
+        )}
 
-      {/* Auto fit to bounds */}
-      {origin && <FitBounds origin={origin} destination={destination} />}
-    </MapContainer>
+        {routeCoords.length > 0 && (
+          <Polyline positions={routeCoords} color="blue" />
+        )}
+
+        {origin && <FitBounds origin={origin} destination={destination} />}
+      </MapContainer>
+    </div>
   );
 }
 

@@ -1,7 +1,8 @@
+// (imports remain unchanged)
 import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import mapping from '../data/carparkDetailsWithLatLng.json';
-import { Container, Alert } from 'react-bootstrap';
+import { Container, Alert, Form, Button } from 'react-bootstrap';
 import SearchForm from './SearchForm';
 import UserRoute from './UserRoute';
 import CarparkResultCard from './CarparkResultCard';
@@ -10,7 +11,9 @@ import './CheckCarpark.css';
 const baseURL = 'https://api.data.gov.sg/v1/transport/carpark-availability';
 
 function CheckCarpark() {
+  const [searchMode, setSearchMode] = useState("address"); // NEW
   const [location, setLocation] = useState('');
+  const [cpnum, setCpNum] = useState(''); // NEW
   const [availability, setAvailability] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedCarpark, setSelectedCarpark] = useState(null);
@@ -97,6 +100,40 @@ function CheckCarpark() {
     }
   }, [location]);
 
+  const handleSearchByCarparkNumber = async () => {
+    if (!cpnum) {
+      setErrorMsg("Please select a carpark number.");
+      return;
+    }
+
+    const selected = mapping.find(cp => cp.car_park_no === cpnum);
+
+    if (!selected || !selected.lat || !selected.lng) {
+      setErrorMsg("No location data for this carpark.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.get(baseURL);
+      const carparkData = response.data.items[0].carpark_data;
+      const found = carparkData.find(cp => cp.carpark_number === cpnum);
+
+      if (found) {
+        setSelectedCarpark(selected);
+        setAvailability(found.carpark_info[0].lots_available);
+        setErrorMsg('');
+      } else {
+        setAvailability(null);
+        setErrorMsg("No availability data.");
+      }
+    } catch (err) {
+      setErrorMsg("Failed to fetch carpark availability.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const geocodeAddress = async (address) => {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
     const response = await axios.get(url);
@@ -157,7 +194,6 @@ function CheckCarpark() {
     }
   }, [selectedCarpark, userAddress]);
 
-  // 🔁 Auto-update route when userAddress changes
   useEffect(() => {
     if (userAddress.trim() && selectedCarpark) {
       handleRouteClick();
@@ -166,52 +202,97 @@ function CheckCarpark() {
 
   return (
     <div className="check-carpark-wrapper">
-      <Container className="check-carpark-container">
+      <div className="check-carpark-container">
         <div className="text-center">
           <span className="display-1">🚗</span>
           <h1 className="mb-4">GOT CARPARK OR NOT?</h1>
         </div>
 
-        <SearchForm
-          location={location}
-          setLocation={setLocation}
-          onCheck={checkAvailability}
-          loading={loading}
-          onSearchChange={handleSearch}
-          userAddress={userAddress}
-          setUserAddress={setUserAddress}
-          onRoute={handleRouteClick}
-        />
+        <Form className="mb-4 text-center">
+          <Form.Check
+            inline
+            type="radio"
+            label="Search by Address"
+            name="searchMode"
+            value="address"
+            checked={searchMode === "address"}
+            onChange={(e) => setSearchMode(e.target.value)}
+          />
+          <Form.Check
+            inline
+            type="radio"
+            label="Search by Carpark Number"
+            name="searchMode"
+            value="carpark"
+            checked={searchMode === "carpark"}
+            onChange={(e) => setSearchMode(e.target.value)}
+          />
+        </Form>
 
-        {results.length > 0 && (
-          <div className="suggestion-list mb-3">
-            <strong>possible address：</strong>
-            <ul className="list-unstyled mb-0 suggestion-list-ul">
-              {results.map(cp => (
-                <li
-                  key={cp.car_park_no}
-                  onClick={() => handleSelectSuggestion(cp)}
-                  className="suggestion-item"
-                >
-                  <span>{cp.address}</span>
-                  <span className="text-success fw-bold">
-                    {slotAvailabilityMap[cp.car_park_no] ?? '--'}
-                  </span>
-                </li>
+        {searchMode === "address" && (
+          <>
+            <SearchForm
+              location={location}
+              setLocation={setLocation}
+              onCheck={checkAvailability}
+              loading={loading}
+              onSearchChange={handleSearch}
+              userAddress={userAddress}
+              setUserAddress={setUserAddress}
+              onRoute={handleRouteClick}
+            />
+
+            {results.length > 0 && (
+              <div className="suggestion-list mb-3">
+                <strong>possible address：</strong>
+                <ul className="list-unstyled mb-0 suggestion-list-ul">
+                  {results.map(cp => (
+                    <li
+                      key={cp.car_park_no}
+                      onClick={() => handleSelectSuggestion(cp)}
+                      className="suggestion-item"
+                    >
+                      <span>{cp.address}</span>
+                      <span className="text-success fw-bold">
+                        {slotAvailabilityMap[cp.car_park_no] ?? '--'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <UserRoute
+              userAddress={userAddress}
+              setUserAddress={setUserAddress}
+              handleRouteClick={handleRouteClick}
+              selectedCarpark={selectedCarpark}
+              loading={loading}
+            />
+          </>
+        )}
+
+        {searchMode === "carpark" && (
+          <div className="text-center">
+            <Form.Select
+              onChange={(e) => setCpNum(e.target.value)}
+              style={{ maxWidth: 250, margin: '0 auto' }}
+              className="mb-3"
+            >
+              <option value="">-- Select carpark number --</option>
+              {mapping.map((cpno, index) => (
+                <option key={index} value={cpno.car_park_no}>
+                  {cpno.car_park_no}
+                </option>
               ))}
-            </ul>
+            </Form.Select>
+            <Button variant="primary" onClick={handleSearchByCarparkNumber}>
+              Search
+            </Button>
           </div>
         )}
 
-        <UserRoute
-          userAddress={userAddress}
-          setUserAddress={setUserAddress}
-          handleRouteClick={handleRouteClick}
-          selectedCarpark={selectedCarpark}
-          loading={loading}
-        />
-
-        {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
+        {errorMsg && <Alert variant="danger" className="mt-3">{errorMsg}</Alert>}
 
         {availability !== null && selectedCarpark && (
           <CarparkResultCard
@@ -221,7 +302,7 @@ function CheckCarpark() {
             routeCoords={showRoute ? routeCoords : []}
           />
         )}
-      </Container>
+      </div>
     </div>
   );
 }

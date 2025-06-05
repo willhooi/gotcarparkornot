@@ -61,3 +61,7 @@
 .suggestion-item:last-child {
   border-bottom: none;
 }
+
+.check-carpark-wrapper {
+  outline: 2px solid red;
+}
