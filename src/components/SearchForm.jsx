@@ -1,40 +1,50 @@
-import { Form, Button, Row, Col, Spinner } from 'react-bootstrap';
+import { Form, Button, Row, Col, Spinner } from "react-bootstrap";
 
-function SearchForm({ 
-  location, 
-  setLocation, 
-  onCheck, 
-  loading, 
+function SearchForm({
+  location,
+  setLocation,
+  onCheck,
+  loading,
   onSearchChange,
   userAddress,
   setUserAddress,
-  onRoute 
-
+  onRoute,
 }) {
-
   return (
-    <Form className="mb-3"
-    onSubmit={(e) => {
+    <Form
+      className="mb-3"
+      onSubmit={(e) => {
         e.preventDefault();
         onCheck();
       }}
     >
-      <Form.Group as={Row} controlId="carparkSearch">
-        <Form.Label column sm={2}>Enter Address:</Form.Label>
-        <Col sm={8}>
+      <Form.Group
+        as={Row}
+        controlId="carparkSearch"
+        className="justify-content-center"
+      >
+        <Form.Label column sm="auto" className="pt-2">
+          I want to park at:
+        </Form.Label>
+
+        <Col sm={6}>
           <Form.Control
             type="text"
             value={location}
             placeholder="e.g. 2A Dover Road"
-            
-            // onChange={(e) => setLocation(e.target.value)}
             onChange={onSearchChange}
+            size="sm"
           />
         </Col>
 
-        <Col sm={2}>
-          <Button variant="primary" onClick={onCheck} disabled={loading}>
-            {loading ? <Spinner animation="border" size="sm" /> : 'Check'}
+        <Col sm="auto">
+          <Button
+            variant="primary"
+            onClick={onCheck}
+            disabled={loading}
+            size="sm"
+          >
+            {loading ? <Spinner animation="border" size="sm" /> : "Check"}
           </Button>
         </Col>
       </Form.Group>

@@ -11,13 +11,6 @@ function App() {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <CheckCarpark />
         </div>
-
-        <hr className="my-5" />
-
-        <div style={{ position: 'relative', zIndex: 0 }}>
-          <SearchbyCarparkNumber />
-        </div>
-        
       </Container>
     </div>
   );

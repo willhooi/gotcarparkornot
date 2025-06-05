@@ -1,4 +1,3 @@
-import React from 'react';
 import { Form, Row, Col, Button, Spinner } from 'react-bootstrap';
 
 function UserRoute({ 
@@ -14,7 +13,7 @@ function UserRoute({
     <Form className="mb-3 border p-3 bg-light">
       <Form.Group as={Row} controlId="userAddress">
         <Form.Label column sm={2} style={{ color: 'black' }}>
-            Your Address:
+            I am at:
         </Form.Label>
         <Col sm={8}>
           <Form.Control

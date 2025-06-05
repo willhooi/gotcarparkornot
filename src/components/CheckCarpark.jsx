@@ -1,8 +1,7 @@
-// (imports remain unchanged)
 import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import mapping from '../data/carparkDetailsWithLatLng.json';
-import { Container, Alert, Form, Button } from 'react-bootstrap';
+import { Alert, Form, Button } from 'react-bootstrap';
 import SearchForm from './SearchForm';
 import UserRoute from './UserRoute';
 import CarparkResultCard from './CarparkResultCard';
@@ -11,9 +10,9 @@ import './CheckCarpark.css';
 const baseURL = 'https://api.data.gov.sg/v1/transport/carpark-availability';
 
 function CheckCarpark() {
-  const [searchMode, setSearchMode] = useState("address"); // NEW
+  const [searchMode, setSearchMode] = useState("address");
   const [location, setLocation] = useState('');
-  const [cpnum, setCpNum] = useState(''); // NEW
+  const [cpnum, setCpNum] = useState('');
   const [availability, setAvailability] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedCarpark, setSelectedCarpark] = useState(null);
@@ -24,6 +23,22 @@ function CheckCarpark() {
   const [showRoute, setShowRoute] = useState(false);
   const [results, setResults] = useState([]);
   const [slotAvailabilityMap, setSlotAvailabilityMap] = useState({});
+
+  const handleClear = () => {
+    setSearchMode("address");
+    setLocation('');
+    setCpNum('');
+    setAvailability(null);
+    setSelectedCarpark(null);
+    setErrorMsg('');
+    setResults([]);
+    setSlotAvailabilityMap({});
+    setUserAddress('');
+    setOriginCoords(null);
+    setRouteCoords([]);
+    setShowRoute(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSearch = useCallback(async (e) => {
     const input = e.target.value;
@@ -262,6 +277,14 @@ function CheckCarpark() {
               </div>
             )}
 
+            {(selectedCarpark || results.length > 0) && (
+              <div className="text-center my-3">
+                <Button variant="outline-secondary" onClick={handleClear}>
+                  Clear & Back to Start
+                </Button>
+              </div>
+            )}
+
             <UserRoute
               userAddress={userAddress}
               setUserAddress={setUserAddress}
@@ -276,7 +299,7 @@ function CheckCarpark() {
           <div className="text-center">
             <Form.Select
               onChange={(e) => setCpNum(e.target.value)}
-              style={{ maxWidth: 250, margin: '0 auto' }}
+              style={{ maxWidth: 200, margin: '0 auto' }}
               className="mb-3"
             >
               <option value="">-- Select carpark number --</option>
@@ -289,6 +312,14 @@ function CheckCarpark() {
             <Button variant="primary" onClick={handleSearchByCarparkNumber}>
               Search
             </Button>
+
+            {selectedCarpark && (
+              <div className="my-3">
+                <Button variant="outline-secondary" onClick={handleClear}>
+                  Clear & Back to Start
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
