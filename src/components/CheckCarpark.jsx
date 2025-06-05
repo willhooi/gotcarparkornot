@@ -1,23 +1,27 @@
-import { useState, useCallback, useEffect } from 'react';
-import axios from 'axios';
-import mapping from '../data/carparkDetailsWithLatLng.json';
-import { Alert, Form, Button } from 'react-bootstrap';
-import SearchForm from './SearchForm';
-import UserRoute from './UserRoute';
-import CarparkResultCard from './CarparkResultCard';
-import './CheckCarpark.css';
+// CheckCarpark.js
+import { useState, useCallback, useEffect } from "react";
+import axios from "axios";
+import mapping from "../data/carparkDetailsWithLatLng.json";
+import { Alert, Form, Button } from "react-bootstrap";
+import SearchForm from "./SearchForm";
+import UserRoute from "./UserRoute";
+import CarparkResultCard from "./CarparkResultCard";
+import Joi from "joi";
+import "./CheckCarpark.css";
 
-const baseURL = 'https://api.data.gov.sg/v1/transport/carpark-availability';
+const baseURL = "https://api.data.gov.sg/v1/transport/carpark-availability";
+const baseUrl = 'https://www.onemap.gov.sg/api/common/elastic/search';
+const authToken = import.meta.env.VITE_ONEMAP_API_KEY;
 
 function CheckCarpark() {
   const [searchMode, setSearchMode] = useState("address");
-  const [location, setLocation] = useState('');
-  const [cpnum, setCpNum] = useState('');
+  const [location, setLocation] = useState("");
+  const [cpnum, setCpNum] = useState("");
   const [availability, setAvailability] = useState(null);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   const [selectedCarpark, setSelectedCarpark] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [userAddress, setUserAddress] = useState('');
+  const [userAddress, setUserAddress] = useState("");
   const [originCoords, setOriginCoords] = useState(null);
   const [routeCoords, setRouteCoords] = useState([]);
   const [showRoute, setShowRoute] = useState(false);
@@ -26,32 +30,63 @@ function CheckCarpark() {
 
   const handleClear = () => {
     setSearchMode("address");
-    setLocation('');
-    setCpNum('');
+    setLocation("");
+    setCpNum("");
     setAvailability(null);
     setSelectedCarpark(null);
-    setErrorMsg('');
+    setErrorMsg("");
     setResults([]);
     setSlotAvailabilityMap({});
-    setUserAddress('');
+    setUserAddress("");
     setOriginCoords(null);
     setRouteCoords([]);
     setShowRoute(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSearch = useCallback(async (e) => {
     const input = e.target.value;
     setLocation(input);
 
-    if (input.trim() === '') {
+    if (input.trim() === "") {
       setResults([]);
       setSlotAvailabilityMap({});
       return;
     }
 
-    const filtered = mapping.filter(cp =>
-      cp.address.toLowerCase().includes(input.toLowerCase())
+    let address = input;
+    const isPostalCode = /^\d{6}$/.test(input);
+
+    if (isPostalCode) {
+      try {
+        const response = await axios.get(baseUrl, {
+          params: {
+            searchVal: input,
+            returnGeom: "Y",
+            getAddrDetails: "Y",
+            pageNum: 1,
+          },
+          headers: {
+            Authorization: authToken,
+          },
+        });
+
+        if (response.data.found > 0) {
+          const result = response.data.results[0];
+          address = `${result.BLK_NO} ${result.ROAD_NAME}`;
+          setLocation(address);
+        } else {
+          setErrorMsg("No results found for that postal code.");
+          return;
+        }
+      } catch (err) {
+        setErrorMsg("Error retrieving postal code address.");
+        return;
+      }
+    }
+
+    const filtered = mapping.filter((cp) =>
+      cp.address.toLowerCase().includes(address.toLowerCase())
     );
     setResults(filtered);
 
@@ -60,14 +95,17 @@ function CheckCarpark() {
       const carparkData = response.data.items[0].carpark_data;
 
       const availabilityMap = {};
-      filtered.forEach(cp => {
-        const found = carparkData.find(c => c.carpark_number === cp.car_park_no);
-        availabilityMap[cp.car_park_no] = (found?.carpark_info[0]?.lots_available ?? 'N/A');
+      filtered.forEach((cp) => {
+        const found = carparkData.find(
+          (c) => c.carpark_number === cp.car_park_no
+        );
+        availabilityMap[cp.car_park_no] =
+          found?.carpark_info[0]?.lots_available ?? "N/A";
       });
 
       setSlotAvailabilityMap(availabilityMap);
     } catch (err) {
-      console.error('Error fetching availability:', err);
+      console.error("Error fetching availability:", err);
       setSlotAvailabilityMap({});
     }
   }, []);
@@ -78,42 +116,47 @@ function CheckCarpark() {
     checkAvailability(cp.address);
   };
 
-  const checkAvailability = useCallback(async (manualAddress) => {
-    const searchLocation = manualAddress || location;
-    const findCarpark = mapping.find(cp =>
-      cp.address.toLowerCase().includes(searchLocation.toLowerCase())
-    );
+  const checkAvailability = useCallback(
+    async (manualAddress) => {
+      const searchLocation = manualAddress || location;
+      const findCarpark = mapping.find((cp) =>
+        cp.address.toLowerCase().includes(searchLocation.toLowerCase())
+      );
 
-    if (!findCarpark || !findCarpark.lat || !findCarpark.lng) {
-      setErrorMsg('Location not found in mapping.');
-      setAvailability(null);
-      setSelectedCarpark(null);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await axios.get(baseURL);
-      const carparkData = response.data.items[0].carpark_data;
-      const carpark = carparkData.find(cp => cp.carpark_number === findCarpark.car_park_no);
-
-      if (carpark && carpark.carpark_info.length > 0) {
-        setAvailability(carpark.carpark_info[0].lots_available);
-        setSelectedCarpark(findCarpark);
-        setErrorMsg('');
-      } else {
-        setErrorMsg('No availability data for this carpark.');
+      if (!findCarpark || !findCarpark.lat || !findCarpark.lng) {
+        setErrorMsg("Location not found in mapping.");
         setAvailability(null);
         setSelectedCarpark(null);
+        return;
       }
-    } catch (err) {
-      setErrorMsg('Failed to fetch data.');
-      setAvailability(null);
-      setSelectedCarpark(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [location]);
+
+      try {
+        setLoading(true);
+        const response = await axios.get(baseURL);
+        const carparkData = response.data.items[0].carpark_data;
+        const carpark = carparkData.find(
+          (cp) => cp.carpark_number === findCarpark.car_park_no
+        );
+
+        if (carpark && carpark.carpark_info.length > 0) {
+          setAvailability(carpark.carpark_info[0].lots_available);
+          setSelectedCarpark(findCarpark);
+          setErrorMsg("");
+        } else {
+          setErrorMsg("No availability data for this carpark.");
+          setAvailability(null);
+          setSelectedCarpark(null);
+        }
+      } catch (err) {
+        setErrorMsg("Failed to fetch data.");
+        setAvailability(null);
+        setSelectedCarpark(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [location]
+  );
 
   const handleSearchByCarparkNumber = async () => {
     if (!cpnum) {
@@ -121,7 +164,7 @@ function CheckCarpark() {
       return;
     }
 
-    const selected = mapping.find(cp => cp.car_park_no === cpnum);
+    const selected = mapping.find((cp) => cp.car_park_no === cpnum);
 
     if (!selected || !selected.lat || !selected.lng) {
       setErrorMsg("No location data for this carpark.");
@@ -132,12 +175,12 @@ function CheckCarpark() {
       setLoading(true);
       const response = await axios.get(baseURL);
       const carparkData = response.data.items[0].carpark_data;
-      const found = carparkData.find(cp => cp.carpark_number === cpnum);
+      const found = carparkData.find((cp) => cp.carpark_number === cpnum);
 
       if (found) {
         setSelectedCarpark(selected);
         setAvailability(found.carpark_info[0].lots_available);
-        setErrorMsg('');
+        setErrorMsg("");
       } else {
         setAvailability(null);
         setErrorMsg("No availability data.");
@@ -150,13 +193,15 @@ function CheckCarpark() {
   };
 
   const geocodeAddress = async (address) => {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      address
+    )}`;
     const response = await axios.get(url);
     if (response.data && response.data.length > 0) {
       const { lat, lon } = response.data[0];
       return [parseFloat(lat), parseFloat(lon)];
     } else {
-      throw new Error('Address not found');
+      throw new Error("Address not found");
     }
   };
 
@@ -164,14 +209,17 @@ function CheckCarpark() {
     const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
     const response = await axios.get(url);
     if (response.data.routes.length > 0) {
-      return response.data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+      return response.data.routes[0].geometry.coordinates.map((coord) => [
+        coord[1],
+        coord[0],
+      ]);
     }
     return [];
   };
 
   const handleRouteClick = useCallback(async () => {
     if (!selectedCarpark || !selectedCarpark.lat || !selectedCarpark.lng) {
-      setErrorMsg('Please check carpark availability first.');
+      setErrorMsg("Please check carpark availability first.");
       return;
     }
 
@@ -182,10 +230,15 @@ function CheckCarpark() {
       if (!userAddress.trim()) {
         origin = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
-            (position) => resolve([position.coords.latitude, position.coords.longitude]),
+            (position) =>
+              resolve([position.coords.latitude, position.coords.longitude]),
             (error) => {
-              console.error('Geolocation error:', error);
-              reject(new Error('Failed to get current location. Please allow location access.'));
+              console.error("Geolocation error:", error);
+              reject(
+                new Error(
+                  "Failed to get current location. Please allow location access."
+                )
+              );
             }
           );
         });
@@ -199,10 +252,13 @@ function CheckCarpark() {
       setOriginCoords(origin);
       setRouteCoords(route);
       setShowRoute(true);
-      setErrorMsg('');
+      setErrorMsg("");
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Failed to calculate route. Please check your address or location access.');
+      setErrorMsg(
+        err.message ||
+          "Failed to calculate route. Please check your address or location access."
+      );
       setShowRoute(false);
     } finally {
       setLoading(false);
@@ -227,7 +283,7 @@ function CheckCarpark() {
           <Form.Check
             inline
             type="radio"
-            label="Search by Address"
+            label="Search by Address or Postal Code"
             name="searchMode"
             value="address"
             checked={searchMode === "address"}
@@ -259,9 +315,9 @@ function CheckCarpark() {
 
             {results.length > 0 && (
               <div className="suggestion-list mb-3">
-                <strong>possible address：</strong>
+                <strong>Possible matches:</strong>
                 <ul className="list-unstyled mb-0 suggestion-list-ul">
-                  {results.map(cp => (
+                  {results.map((cp) => (
                     <li
                       key={cp.car_park_no}
                       onClick={() => handleSelectSuggestion(cp)}
@@ -269,7 +325,7 @@ function CheckCarpark() {
                     >
                       <span>{cp.address}</span>
                       <span className="text-success fw-bold">
-                        {slotAvailabilityMap[cp.car_park_no] ?? '--'}
+                        {slotAvailabilityMap[cp.car_park_no] ?? "--"}
                       </span>
                     </li>
                   ))}
@@ -299,7 +355,7 @@ function CheckCarpark() {
           <div className="text-center">
             <Form.Select
               onChange={(e) => setCpNum(e.target.value)}
-              style={{ maxWidth: 200, margin: '0 auto' }}
+              style={{ maxWidth: 200, margin: "0 auto" }}
               className="mb-3"
             >
               <option value="">-- Select carpark number --</option>
@@ -323,7 +379,11 @@ function CheckCarpark() {
           </div>
         )}
 
-        {errorMsg && <Alert variant="danger" className="mt-3">{errorMsg}</Alert>}
+        {errorMsg && (
+          <Alert variant="danger" className="mt-3">
+            {errorMsg}
+          </Alert>
+        )}
 
         {availability !== null && selectedCarpark && (
           <CarparkResultCard
