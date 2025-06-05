@@ -24,7 +24,7 @@ function SearchForm({
         className="justify-content-center"
       >
         <Form.Label column sm="auto" className="pt-2">
-          I want to park at:
+          I want to go park at:
         </Form.Label>
 
         <Col sm={6}>

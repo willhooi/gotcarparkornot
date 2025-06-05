@@ -118,9 +118,11 @@ function CheckCarpark() {
 
   const checkAvailability = useCallback(
     async (manualAddress) => {
-      const searchLocation = manualAddress || location;
+      const searchLocation = String(manualAddress || location);
+      const normalizedInput = searchLocation.toLowerCase().replace(/\s+/g, ' ').trim();
+
       const findCarpark = mapping.find((cp) =>
-        cp.address.toLowerCase().includes(searchLocation.toLowerCase())
+        cp.address.toLowerCase().replace(/\s+/g, ' ').includes(normalizedInput)
       );
 
       if (!findCarpark || !findCarpark.lat || !findCarpark.lng) {
@@ -157,6 +159,7 @@ function CheckCarpark() {
     },
     [location]
   );
+
 
   const handleSearchByCarparkNumber = async () => {
     if (!cpnum) {
